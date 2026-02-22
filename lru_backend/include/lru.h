@@ -9,11 +9,15 @@
 
 template<typename KeyType, typename ValueType>
 class LRUCache {
-private:
+protected:
     struct Node{
         KeyType key;
         ValueType data;
+
+        Node(const KeyType& k, const ValueType& v): key(k), data(v) {}
+        Node() = default;
     };
+
 
     std::size_t max_cache_size_;
 
@@ -27,12 +31,7 @@ public:
             throw std::invalid_argument("Cache size must be bigger then 0!");
     }
 
-    ~LRUCache(){
-        delete(map_);
-        delete(recency_list_);
-    }
-
-    std::optional<ValueType> get(KeyType key) {
+    std::optional<ValueType> get(const KeyType& key) {
         auto map_it = map_.find(key);
         if(map_it == map_.end()){
             return std::nullopt;
@@ -55,14 +54,14 @@ public:
             recency_list_.splice(recency_list_.begin(), recency_list_, list_it);
         }
 
-        // Case if value not in cache
+            // Case if value not in cache
         else {
             // Add node in list if list smaller then cache size
             if(recency_list_.size() < max_cache_size_) {
                 recency_list_.emplace_front(key, value);
                 map_[key] = recency_list_.begin();
             }
-            // Evict already existed node
+                // Evict already existed node
             else {
                 auto list_it = -- recency_list_.end();
                 map_.erase(list_it->key);
@@ -83,7 +82,7 @@ public:
     }
 
     bool empty () const noexcept {return map_.empty();}
-    bool contatins(const KeyType& key) const {map_.find(key) == map_.end() ? false : true;}
+    bool contains(const KeyType& key) const {map_.find(key) == map_.end() ? false : true;}
     std::size_t size() const noexcept {return map_.size();}
     std::size_t max_size() const noexcept{return max_cache_size_;}
-}
+};
