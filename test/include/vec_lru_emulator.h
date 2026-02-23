@@ -32,13 +32,17 @@ public:
         auto vec_it = find_by_key(key);
 
         // If value not already in cache
-        if(vec_it == node_array_.end()) {
+        if(vec_it == node_array_.end()){
             node_array_.insert(node_array_.begin(), Node(key, value));
-        }
 
-            // If value already in cache
+            if (node_array_.size() > max_cache_size_)
+                node_array_.pop_back(); 
+        }
+        
+        // If value already in cache
         else{
             Node tmp = *vec_it;
+            tmp.data = value; 
             node_array_.erase(vec_it);
             node_array_.insert(node_array_.begin(), tmp);
         }
@@ -46,18 +50,16 @@ public:
 
     std::optional<ValueType> get(const KeyType& key) {
         auto vec_it = find_by_key(key);
-
-        // If no value in cache
-        if(vec_it == node_array_.end())
+        if (vec_it == node_array_.end())
             return std::nullopt;
 
-        // If value in cache
-        else{
-            auto tmp = *vec_it;
-            node_array_.erase(vec_it);
-            node_array_.insert(node_array_.begin(), tmp);
-        }
+        ValueType result = vec_it->data;
 
+        Node tmp = *vec_it;
+        node_array_.erase(vec_it);
+        node_array_.insert(node_array_.begin(), tmp);
+
+        return result;
     }
 
     void clear() {
@@ -70,28 +72,27 @@ public:
     std::size_t max_size() const noexcept {return max_cache_size_;}
 
 private:
-    typename std::vector<Node>::iterator find_by_key(const KeyType target_key){
-        auto it = std::find_if(node_array_.begin(),
-                               node_array_.end(),
-                               [&target_key](const Node& node)
-                                   {return node.key == target_key;});
+typename std::vector<Node>::iterator find_by_key(const KeyType& target_key){
+    return std::find_if(node_array_.begin(), node_array_.end(),
+        [&target_key](const Node& node) { return node.key == target_key; });
+}
 
-        if(it == node_array_.end())
-            return node_array_.end();
+// In find_by_value: fix member name + const ref
+typename std::vector<Node>::iterator find_by_value(const ValueType& target_value){
+    return std::find_if(node_array_.begin(), node_array_.end(),
+        [&target_value](const Node& node) { return node.data == target_value; });
+}
 
-        return it;
-    }
+typename std::vector<Node>::const_iterator 
+find_by_key(const KeyType& target_key) const {
+    return std::find_if(node_array_.begin(), node_array_.end(),
+        [&target_key](const Node& node) { return node.key == target_key; });
+}
 
-    typename std::vector<Node>::iterator find_by_value(const ValueType target_value){
-        auto it = std::find_if(node_array_.begin(),
-                               node_array_.end(),
-                               [&target_value](const Node& node)
-                                   {return node.value == target_value;});
-        
-        if(it == node_array_.end())
-            return node_array_.end();
-
-        return it;
-    }
+typename std::vector<Node>::const_iterator
+find_by_value(const ValueType& target_value) const {
+    return std::find_if(node_array_.begin(), node_array_.end(),
+        [&target_value](const Node& node) { return node.data == target_value; });
+}
 
 };

@@ -125,7 +125,7 @@ bool cache_comp(const LRUTest<KeyType, ValueType>& oracle_lru,
     auto naive_it = naive_list.begin();
     auto oracle_it = oracle_list.begin();
     
-    while(naive_it != naive_list.end()) {
+    while(naive_it != naive_list.end() && oracle_it != oracle_list.end()) {
         if(naive_it->key != oracle_it->key || naive_it->data != oracle_it->data)
             return false;
         
@@ -139,12 +139,13 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     FuzzDataReader reader{data, size, 0};
 
     size_t capacity = (reader.ReadByte() % MAX_CAPACITY) + 1;
+    std::cout << "Cache capacity: " << capacity << std::endl;
 
     LRUTest<int, int> oracle_cache(capacity);
     LRUEmulatorTest<int, int> test_cache(capacity);
 
     // Execute operations
-    //std::cout << "Op history: \n" << std::endl;
+    std::cout << "Test: \n" << std::endl;
 
     std::size_t op_count = 0;
     while(reader.HasData() && op_count < MAX_OPERATIONS){
@@ -153,26 +154,33 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
         uint32_t value = reader.ReadInt();
 
         if(opcode < 100){
-            //std::cout << "put" << std::endl;
+            std::cout << "put: key " << key << " data " << value << std::endl;
             oracle_cache.put(key, value);
             test_cache.put(key, value);
 
             if(!resent_el_comp(oracle_cache, test_cache)){
                 std::cerr << "Recent element becomes different for different LRU implementations after put()!\n";
+                oracle_cache.visualize();
+                test_cache.visualize();
                 abort();
             }
         }
 
         else{
-            //std::cout << "get" << std::endl;
+            std::cout << "get: key " << key << std::endl;
             auto res_oracle = oracle_cache.get(key);
-            auto res_test   = oracle_cache.get(key);
+            auto res_test   = test_cache.get(key);
 
             if(res_oracle != res_test){
                 std::cerr << "Different values provides from different implementation after get()!\n";
+                oracle_cache.visualize();
+                test_cache.visualize();
                 abort();
             }
         }
+
+        //oracle_cache.visualize();
+        //test_cache.visualize();
 
         if(oracle_cache.size() != test_cache.size()){
             std::cerr << "Oracle and test cache implementations become with different size!\n";
@@ -186,6 +194,8 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     // in the same order
     if(!cache_comp(oracle_cache, test_cache)){
         std::cerr << "Oracle and test cache implementations becomes with different cache buffers\n";
+        oracle_cache.visualize();
+        test_cache.visualize();
         abort();
     }
 
